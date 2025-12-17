@@ -14,6 +14,7 @@ on:
 env:
   ENVIRONMENT: dev
   NAMESPACE: camel-k-dev
+  CAMEL_K_VERSION: "2.8.0"
 
 jobs:
   deploy:
@@ -51,7 +52,7 @@ jobs:
           # Check if operator exists
           if ! kubectl get deployment camel-k-operator -n ${{ env.NAMESPACE }} 2>/dev/null; then
             echo "Installing Camel K Operator..."
-            KAMEL_VERSION=2.8.0
+            KAMEL_VERSION=${{ env.CAMEL_K_VERSION }}
             kubectl apply --server-side=true -k "github.com/apache/camel-k/install/overlays/kubernetes/descoped?ref=v${KAMEL_VERSION}" -n ${{ env.NAMESPACE }}
             kubectl wait --for=condition=available --timeout=180s deployment/camel-k-operator -n ${{ env.NAMESPACE }}
           else
@@ -66,7 +67,7 @@ jobs:
 
       - name: Install Camel K CLI
         run: |
-          KAMEL_VERSION=2.8.0
+          KAMEL_VERSION=${{ env.CAMEL_K_VERSION }}
           curl -L https://github.com/apache/camel-k/releases/download/v${KAMEL_VERSION}/camel-k-client-${KAMEL_VERSION}-linux-amd64.tar.gz -o kamel.tar.gz
           tar -xzf kamel.tar.gz
           sudo mv kamel /usr/local/bin/

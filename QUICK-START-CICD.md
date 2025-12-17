@@ -47,8 +47,9 @@ kubectl create rolebinding github-actions-deployer \
   --serviceaccount=$NAMESPACE:github-actions \
   -n $NAMESPACE
 
-# Generate long-lived token (for CI/CD)
-kubectl create token github-actions -n $NAMESPACE --duration=87600h > token.txt
+# Generate token for CI/CD (90 days = 2160h)
+# NOTE: Rotate secrets every 90 days for security best practices
+kubectl create token github-actions -n $NAMESPACE --duration=2160h > token.txt
 
 # Create kubeconfig file for this service account
 cat > sa-kubeconfig.yaml << EOF

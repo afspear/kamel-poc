@@ -12,6 +12,9 @@ on:
       - develop
       - staging
 
+env:
+  CAMEL_K_VERSION: "2.8.0"
+
 jobs:
   lint-and-validate:
     name: Lint and Validate
@@ -38,13 +41,13 @@ jobs:
         run: |
           echo "Validating YAML files..."
           sudo apt-get update && sudo apt-get install -y yamllint
-          yamllint -d "{extends: relaxed, rules: {line-length: {max: 120}}}" *.yaml || true
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 120}}}" *.yaml k8s/**/*.yaml
 
       - name: Check shell scripts
         run: |
           echo "Checking shell scripts..."
           sudo apt-get install -y shellcheck
-          shellcheck *.sh || true
+          shellcheck *.sh
 
   security-scan:
     name: Security Scanning
@@ -92,7 +95,7 @@ jobs:
       - name: Install Camel K
         run: |
           echo "Installing Camel K CLI..."
-          KAMEL_VERSION=2.8.0
+          KAMEL_VERSION=${{ env.CAMEL_K_VERSION }}
           curl -L https://github.com/apache/camel-k/releases/download/v${KAMEL_VERSION}/camel-k-client-${KAMEL_VERSION}-linux-amd64.tar.gz -o kamel.tar.gz
           tar -xzf kamel.tar.gz
           sudo mv kamel /usr/local/bin/

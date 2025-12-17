@@ -16,6 +16,9 @@ spec:
   profile: Kubernetes
   traits:
     # Production-specific trait configurations
+    # Note: Production has tighter resource limits than staging (500m vs 1000m CPU)
+    # This is intentional to ensure cost efficiency and prevent resource overconsumption
+    # Adjust based on actual production workload requirements
     container:
       imagePullPolicy: Always
       limitCPU: "500m"
