@@ -1,0 +1,45 @@
+apiVersion: camel.apache.org/v1
+kind: IntegrationPlatform
+metadata:
+  labels:
+    app: camel-k
+    environment: production
+  name: camel-k
+  namespace: camel-k-prod
+spec:
+  build:
+    registry:
+      address: registry.io
+      organization: camel-k-prod
+      insecure: false
+    timeout: 20m
+  profile: Kubernetes
+  traits:
+    # Production-specific trait configurations
+    # Note: Production has tighter resource limits than staging (500m vs 1000m CPU)
+    # This is intentional to ensure cost efficiency and prevent resource overconsumption
+    # Adjust based on actual production workload requirements
+    container:
+      imagePullPolicy: Always
+      limitCPU: "500m"
+      limitMemory: "512Mi"
+      requestCPU: "200m"
+      requestMemory: "256Mi"
+    logging:
+      level: INFO
+      json: true
+    prometheus:
+      enabled: true
+      podMonitor: true
+    health:
+      enabled: true
+      livenessProbeEnabled: true
+      readinessProbeEnabled: true
+      livenessInitialDelay: 30
+      readinessInitialDelay: 10
+    affinity:
+      enabled: true
+      podAntiAffinityLabels:
+        - camel.apache.org/integration
+    toleration:
+      enabled: false

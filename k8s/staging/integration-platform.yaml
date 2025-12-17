@@ -1,0 +1,38 @@
+apiVersion: camel.apache.org/v1
+kind: IntegrationPlatform
+metadata:
+  labels:
+    app: camel-k
+    environment: staging
+  name: camel-k
+  namespace: camel-k-staging
+spec:
+  build:
+    registry:
+      address: registry.io
+      organization: camel-k-staging
+      insecure: false
+    timeout: 15m
+  profile: Kubernetes
+  traits:
+    # Staging-specific trait configurations
+    container:
+      imagePullPolicy: Always
+      limitCPU: "1000m"
+      limitMemory: "1Gi"
+      requestCPU: "200m"
+      requestMemory: "256Mi"
+    logging:
+      level: INFO
+      json: true
+    prometheus:
+      enabled: true
+      podMonitor: true
+    health:
+      enabled: true
+      livenessProbeEnabled: true
+      readinessProbeEnabled: true
+    affinity:
+      enabled: true
+      podAntiAffinityLabels:
+        - camel.apache.org/integration

@@ -26,3 +26,17 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# CI/CD artifacts
+deployment-info/
+backup-*/
+*.tar.gz
+kamel
+token.txt
+sa-kubeconfig.yaml
+
+# Security files
+*.pem
+*.key
+kubeconfig*
+!k8s/**/*.yaml

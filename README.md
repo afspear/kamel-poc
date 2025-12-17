@@ -1,6 +1,6 @@
 # Camel K Proof of Concept
 
-A complete proof-of-concept implementation of Apache Camel K on Kubernetes, featuring an event-driven cryptocurrency price consumer.
+A complete proof-of-concept implementation of Apache Camel K on Kubernetes, featuring an event-driven cryptocurrency price consumer with production-ready CI/CD pipelines.
 
 ## Overview
 
@@ -10,6 +10,7 @@ This project demonstrates:
 - Real-time cryptocurrency price monitoring via CoinGecko API
 - Cloud-native integration runtime with automatic build and deployment
 - Kubernetes-native monitoring and management
+- **Production SDLC with automated CI/CD pipelines** 🚀
 
 ## Architecture
 
@@ -118,6 +119,7 @@ kubectl get pods -l camel.apache.org/integration=consumer
 
 ## Documentation
 
+### Technical Documentation
 See **[DOCUMENTATION.md](./DOCUMENTATION.md)** for complete technical documentation including:
 - Detailed architecture
 - Step-by-step installation guide
@@ -125,6 +127,25 @@ See **[DOCUMENTATION.md](./DOCUMENTATION.md)** for complete technical documentat
 - Troubleshooting guide
 - Performance considerations
 - Complete command reference
+
+### Production SDLC & CI/CD Pipelines 🚀
+See **[SDLC-PIPELINE.md](./SDLC-PIPELINE.md)** for production deployment pipelines:
+- **Automated CI/CD workflows** - Commit-triggered deployments
+- **Multi-environment support** - Dev, Staging, Production
+- **Branch-based deployment strategy** - develop → staging → main
+- **Security scanning** - Automated vulnerability detection
+- **Health checks** - Automated deployment validation
+- **Rollback procedures** - Quick recovery from issues
+- **Complete deployment guide** - From local dev to production
+
+#### Quick Pipeline Overview:
+```
+Commit to 'develop' → Auto-deploy to DEV environment
+Commit to 'staging' → Auto-deploy to STAGING environment (with smoke tests)
+Commit to 'main'    → Auto-deploy to PRODUCTION environment (with health checks & rollback)
+```
+
+All deployments are triggered by commits to their respective branches, providing a true production SDLC experience.
 
 ## Cleanup
 
