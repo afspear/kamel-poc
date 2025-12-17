@@ -16,6 +16,9 @@ env:
   NAMESPACE: camel-k-staging
   CAMEL_K_VERSION: "2.8.0"
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Staging Environment
@@ -23,6 +26,8 @@ jobs:
     environment:
       name: staging
       url: https://staging.yourcompany.com
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code

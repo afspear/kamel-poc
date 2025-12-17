@@ -16,6 +16,9 @@ env:
   NAMESPACE: camel-k-dev
   CAMEL_K_VERSION: "2.8.0"
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Dev Environment
@@ -23,6 +26,8 @@ jobs:
     environment:
       name: development
       url: https://dev.yourcompany.com
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
