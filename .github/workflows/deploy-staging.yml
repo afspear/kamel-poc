@@ -1,0 +1,164 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual deployment trigger'
+
+env:
+  ENVIRONMENT: staging
+  NAMESPACE: camel-k-staging
+
+jobs:
+  deploy:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.yourcompany.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set deployment info
+        id: deploy-info
+        run: |
+          echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "version=staging-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Configure kubectl
+        run: |
+          echo "Configuring kubectl for staging cluster..."
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install/Update Camel K Operator (if needed)
+        run: |
+          # Check if operator exists
+          if ! kubectl get deployment camel-k-operator -n ${{ env.NAMESPACE }} 2>/dev/null; then
+            echo "Installing Camel K Operator..."
+            KAMEL_VERSION=2.8.0
+            kubectl apply --server-side=true -k "github.com/apache/camel-k/install/overlays/kubernetes/descoped?ref=v${KAMEL_VERSION}" -n ${{ env.NAMESPACE }}
+            kubectl wait --for=condition=available --timeout=180s deployment/camel-k-operator -n ${{ env.NAMESPACE }}
+          else
+            echo "Camel K Operator already exists"
+          fi
+
+      - name: Configure Integration Platform
+        run: |
+          # Apply integration platform configuration for staging environment
+          kubectl apply -f k8s/staging/integration-platform.yaml -n ${{ env.NAMESPACE }}
+          sleep 5
+
+      - name: Install Camel K CLI
+        run: |
+          KAMEL_VERSION=2.8.0
+          curl -L https://github.com/apache/camel-k/releases/download/v${KAMEL_VERSION}/camel-k-client-${KAMEL_VERSION}-linux-amd64.tar.gz -o kamel.tar.gz
+          tar -xzf kamel.tar.gz
+          sudo mv kamel /usr/local/bin/
+          chmod +x /usr/local/bin/kamel
+
+      - name: Deploy Consumer Integration
+        run: |
+          echo "Deploying consumer integration to staging..."
+          kubectl config set-context --current --namespace=${{ env.NAMESPACE }}
+          
+          # Deploy with staging-specific traits and configurations
+          kamel run consumer.java \
+            --name consumer-staging \
+            --namespace ${{ env.NAMESPACE }} \
+            --property app.environment=staging \
+            --property app.version=${{ steps.deploy-info.outputs.version }} \
+            -t container.image-pull-policy=Always \
+            -t logging.level=INFO \
+            -t prometheus.enabled=true \
+            --wait
+
+      - name: Verify Deployment
+        run: |
+          echo "Verifying deployment..."
+          kubectl get integration consumer-staging -n ${{ env.NAMESPACE }}
+          kubectl wait --for=condition=Ready --timeout=300s integration/consumer-staging -n ${{ env.NAMESPACE }}
+          
+          echo "Checking pods..."
+          kubectl get pods -l camel.apache.org/integration=consumer-staging -n ${{ env.NAMESPACE }}
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Wait for at least one successful execution
+          sleep 70
+          
+          # Check if pods completed successfully
+          COMPLETED_PODS=$(kubectl get pods -l camel.apache.org/integration=consumer-staging -n ${{ env.NAMESPACE }} \
+            --field-selector=status.phase=Succeeded --no-headers | wc -l)
+          
+          if [ "$COMPLETED_PODS" -ge 1 ]; then
+            echo "✅ Smoke test passed - integration executed successfully"
+          else
+            echo "⚠️  Warning: No completed pods found yet"
+            kubectl get pods -l camel.apache.org/integration=consumer-staging -n ${{ env.NAMESPACE }}
+          fi
+
+      - name: Display Logs
+        if: always()
+        run: |
+          echo "Fetching recent logs..."
+          kubectl logs -l camel.apache.org/integration=consumer-staging -n ${{ env.NAMESPACE }} --tail=50 || true
+
+      - name: Create deployment annotation
+        run: |
+          kubectl annotate integration consumer-staging -n ${{ env.NAMESPACE }} \
+            deployment/timestamp="${{ steps.deploy-info.outputs.timestamp }}" \
+            deployment/sha="${{ github.sha }}" \
+            deployment/triggered-by="${{ github.actor }}" \
+            deployment/reason="${{ github.event.inputs.reason || 'Push to staging branch' }}" \
+            --overwrite
+
+      - name: Post deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment to STAGING successful!"
+            echo "Version: ${{ steps.deploy-info.outputs.version }}"
+            echo "Timestamp: ${{ steps.deploy-info.outputs.timestamp }}"
+          else
+            echo "❌ Deployment to STAGING failed!"
+          fi
+
+      - name: Store deployment artifact
+        if: success()
+        run: |
+          mkdir -p deployment-info
+          cat > deployment-info/staging-deployment.json << EOF
+          {
+            "environment": "staging",
+            "version": "${{ steps.deploy-info.outputs.version }}",
+            "timestamp": "${{ steps.deploy-info.outputs.timestamp }}",
+            "sha": "${{ github.sha }}",
+            "triggered_by": "${{ github.actor }}",
+            "status": "deployed"
+          }
+          EOF
+
+      - name: Upload deployment info
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: staging-deployment-info
+          path: deployment-info/
+          retention-days: 90

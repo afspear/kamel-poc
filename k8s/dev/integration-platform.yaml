@@ -1,0 +1,33 @@
+apiVersion: camel.apache.org/v1
+kind: IntegrationPlatform
+metadata:
+  labels:
+    app: camel-k
+    environment: dev
+  name: camel-k
+  namespace: camel-k-dev
+spec:
+  build:
+    registry:
+      address: registry.io
+      organization: camel-k-dev
+      insecure: true
+    timeout: 10m
+  profile: Kubernetes
+  traits:
+    # Development-specific trait configurations
+    container:
+      imagePullPolicy: Always
+      limitCPU: "1000m"
+      limitMemory: "1Gi"
+      requestCPU: "100m"
+      requestMemory: "256Mi"
+    logging:
+      level: DEBUG
+      json: false
+    prometheus:
+      enabled: false
+    health:
+      enabled: true
+      livenessProbeEnabled: true
+      readinessProbeEnabled: true
