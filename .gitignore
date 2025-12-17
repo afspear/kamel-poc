@@ -1,0 +1,28 @@
+# Kubernetes generated files
+*.log
+.kube/
+
+# Camel K local files
+.camel-k/
+.kamel/
+
+# Build artifacts
+target/
+build/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
